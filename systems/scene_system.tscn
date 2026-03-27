@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://et3wln3f2yvh"]
+
+[ext_resource type="Script" uid="uid://i6g261da8yof" path="res://systems/scene_system.gd" id="1_4pfp4"]
+
+[node name="SceneSystem" type="Node" unique_id=1044051890]
+script = ExtResource("1_4pfp4")

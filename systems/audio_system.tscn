@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://dkkk27tjnpfit"]
+
+[ext_resource type="Script" uid="uid://cpj248oeo3nq" path="res://systems/audio_system.gd" id="1_b4rwa"]
+[ext_resource type="AudioStream" uid="uid://cqhw22cewqjbh" path="res://demo/bgm.ogg" id="2_khn6y"]
+[ext_resource type="AudioStream" uid="uid://tyynudfksbh6" path="res://demo/laser.ogg" id="3_qb0oe"]
+[ext_resource type="AudioStream" uid="uid://8ft6h8omp272" path="res://demo/thruster.ogg" id="4_6aowx"]
+[ext_resource type="AudioStream" uid="uid://3n2narx40nwd" path="res://demo/explosion.ogg" id="5_sgd1c"]
+
+[node name="AudioSystem" type="Node" unique_id=455669328]
+script = ExtResource("1_b4rwa")
+bgm_tracks = Dictionary[String, AudioStream]({
+"demo": ExtResource("2_khn6y")
+})
+default_track = "demo"
+
+[node name="BGM" type="AudioStreamPlayer" parent="." unique_id=608607434]
+bus = &"BGM"
+
+[node name="SFX" type="Node" parent="." unique_id=306181022]
+
+[node name="Laser" type="AudioStreamPlayer" parent="SFX" unique_id=1863665815]
+stream = ExtResource("3_qb0oe")
+bus = &"SFX"
+
+[node name="Thruster" type="AudioStreamPlayer" parent="SFX" unique_id=1826111878]
+stream = ExtResource("4_6aowx")
+bus = &"SFX"
+
+[node name="Explosion" type="AudioStreamPlayer" parent="SFX" unique_id=967766714]
+stream = ExtResource("5_sgd1c")
+bus = &"SFX"

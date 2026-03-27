@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://c5xdyiqgdafuj"]
+
+[ext_resource type="Script" uid="uid://cjovr5ntab6fi" path="res://demo/demo.gd" id="1_5hfv0"]
+[ext_resource type="Texture2D" uid="uid://cffge4x84sy18" path="res://demo/ship.png" id="2_0bhed"]
+
+[sub_resource type="Curve2D" id="Curve2D_ytiva"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, -960, -540, 0, 0, 0, 0, 960, -540, 0, 0, 0, 0, 960, 540, 0, 0, 0, 0, -960, 540, 0, 0, 0, 0, -960, -540)
+}
+point_count = 5
+
+[node name="Demo" type="Node2D" unique_id=2131555336]
+script = ExtResource("1_5hfv0")
+asteroid_count = 8
+asteroid_points = 5
+asteroid_speed = 50.0
+asteroid_spin = 60.0
+laser_speed = 400.0
+ship_friction = 20.0
+ship_thrust = 100.0
+ship_turning = 120.0
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1299033124]
+
+[node name="Ship" type="CharacterBody2D" parent="." unique_id=1660171110]
+motion_mode = 1
+
+[node name="Sprite2D" type="Sprite2D" parent="Ship" unique_id=2092795893]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_0bhed")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Ship" unique_id=518766337]
+polygon = PackedVector2Array(0, -14, 14, 15, 0, 10, -14, 15)
+
+[node name="ReloadTimer" type="Timer" parent="." unique_id=1704934731]
+wait_time = 0.5
+
+[node name="AsteroidTimer" type="Timer" parent="." unique_id=2068377007]
+wait_time = 2.0
+
+[node name="SpawnPath" type="Path2D" parent="." unique_id=307307602]
+curve = SubResource("Curve2D_ytiva")
+
+[node name="SpawnPoint" type="PathFollow2D" parent="SpawnPath" unique_id=1004363810]
+unique_name_in_owner = true
+position = Vector2(-960, -540)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1501659609]
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer" unique_id=1337715340]
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/MarginContainer" unique_id=1961878808]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Score: 0
+High Score: 0"
+
+[connection signal="timeout" from="ReloadTimer" to="." method="_on_reload"]
+[connection signal="timeout" from="AsteroidTimer" to="." method="_on_asteroid"]

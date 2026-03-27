@@ -1,0 +1,142 @@
+[gd_scene format=3 uid="uid://chthpluiupayn"]
+
+[ext_resource type="Script" uid="uid://chnffaoxs2owi" path="res://main_menu.gd" id="1_06t4h"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rhts7"]
+bg_color = Color(0, 0, 0, 0.7490196)
+
+[sub_resource type="Theme" id="Theme_rhts7"]
+default_font_size = 24
+HBoxContainer/constants/separation = 16
+MarginContainer/constants/margin_bottom = 32
+MarginContainer/constants/margin_left = 32
+MarginContainer/constants/margin_right = 32
+MarginContainer/constants/margin_top = 32
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_rhts7")
+VBoxContainer/constants/separation = 16
+
+[node name="MainMenu" type="Control" unique_id=501054535]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_rhts7")
+script = ExtResource("1_06t4h")
+game_scene = "uid://c5xdyiqgdafuj"
+
+[node name="MainContent" type="MarginContainer" parent="." unique_id=2097499811]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BottomInfo" type="HBoxContainer" parent="MainContent" unique_id=1835795653]
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="Credits" type="Label" parent="MainContent/BottomInfo" unique_id=990098897]
+layout_mode = 2
+text = "Created by Me, Myself and I
+For the JamJar Jam 2026"
+
+[node name="Spacer" type="Control" parent="MainContent/BottomInfo" unique_id=1304817069]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MuteButton" type="Button" parent="MainContent/BottomInfo" unique_id=2015163976]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 8
+text = "Mute Sound"
+
+[node name="Menu" type="VBoxContainer" parent="MainContent" unique_id=1611614193]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 64
+alignment = 1
+
+[node name="Label" type="Label" parent="MainContent/Menu" unique_id=1953951586]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "My New Game"
+horizontal_alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContent/Menu" unique_id=2143801716]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="PlayButton" type="Button" parent="MainContent/Menu/VBoxContainer" unique_id=11570449]
+layout_mode = 2
+text = "Play"
+
+[node name="HelpButton" type="Button" parent="MainContent/Menu/VBoxContainer" unique_id=1215932584]
+layout_mode = 2
+text = "Help"
+
+[node name="QuitButton" type="Button" parent="MainContent/Menu/VBoxContainer" unique_id=440843452]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Quit"
+
+[node name="HelpPopUp" type="MarginContainer" parent="." unique_id=1351230356]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 128
+theme_override_constants/margin_top = 128
+theme_override_constants/margin_right = 128
+theme_override_constants/margin_bottom = 128
+
+[node name="PanelContainer" type="PanelContainer" parent="HelpPopUp" unique_id=19099675]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="HelpPopUp/PanelContainer" unique_id=1164846197]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HelpPopUp/PanelContainer/MarginContainer" unique_id=1534507558]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer" unique_id=1864066541]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "How to Play"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer" unique_id=993903919]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1615248637]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam est nulla, iaculis quis felis in, porttitor consectetur augue. Duis ac iaculis elit. Quisque efficitur pharetra odio in mattis. Phasellus quis nisi fringilla, tempor mauris in, elementum augue. Proin faucibus at nisl sed vehicula. Nulla a elementum justo. Morbi posuere posuere accumsan. Phasellus vel erat eu nunc varius pellentesque. Maecenas ultrices vel eros ut vulputate. Fusce ornare imperdiet metus et vestibulum. Maecenas viverra elit id elit rhoncus, nec feugiat tellus finibus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. In pulvinar tincidunt purus quis venenatis. Nullam blandit, mi id vulputate egestas, orci nulla blandit nisl, in interdum velit elit at sem. Nam accumsan dui quis consequat euismod. Curabitur molestie malesuada lorem nec vehicula. "
+autowrap_mode = 3
+
+[node name="Label2" type="Label" parent="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1007961020]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "Quisque ullamcorper sollicitudin magna at sodales. Donec at enim finibus, dictum mauris vel, congue magna. Nulla leo mi, bibendum id pellentesque quis, tristique id neque. Vestibulum vitae ipsum magna. Etiam non mauris dolor. Vivamus ornare imperdiet arcu non efficitur. Duis ornare at eros et interdum. In hac habitasse platea dictumst. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Suspendisse odio leo, finibus eu feugiat non, lacinia et sem. Donec consequat elit libero, vel gravida purus maximus non. Donec sed egestas nisi. Mauris a tincidunt mauris, eget consectetur nulla. "
+autowrap_mode = 3
+
+[node name="CloseHelpButton" type="Button" parent="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer" unique_id=969227422]
+layout_mode = 2
+text = "Close"
+
+[connection signal="pressed" from="MainContent/BottomInfo/MuteButton" to="." method="_on_mute"]
+[connection signal="pressed" from="MainContent/Menu/VBoxContainer/PlayButton" to="." method="_on_play"]
+[connection signal="pressed" from="MainContent/Menu/VBoxContainer/HelpButton" to="." method="_on_help"]
+[connection signal="pressed" from="MainContent/Menu/VBoxContainer/QuitButton" to="." method="_on_quit"]
+[connection signal="pressed" from="HelpPopUp/PanelContainer/MarginContainer/VBoxContainer/CloseHelpButton" to="." method="_on_help"]
