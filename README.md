@@ -45,8 +45,8 @@ git add .
 git commit -m "New Godot JamJar project"
 ```
 
-***Note:** You still need to create a remote Git repository and push your local repository to it if
-you want to collaborate on your project or back it up remotely.*
+**\*Note:** You still need to create a remote Git repository and push your local repository to it if
+you want to collaborate on your project or back it up remotely.\*
 
 ## Project Structure
 
