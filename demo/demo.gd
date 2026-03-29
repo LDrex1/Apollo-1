@@ -1,197 +1,208 @@
 extends Node2D
 
-## The scene for a asteroid instance
-const ASTEROID_SCENE: PackedScene = preload("res://demo/asteroid.tscn")
-## How far the laser should be from the ship when it is instantiated
-const LASER_OFFSET: int = 64
-## The scene for a laser instance
-const LASER_SCENE: PackedScene = preload("res://demo/laser.tscn")
-## An offset to compensate for the fact that the visual rotation does not match the node rotation
-## (we could also fix this by angling the sprite 90deg to the right, but this makes it obvious)
-const ROTATION_OFFSET: float = PI / 2
+@onready var background: ColorRect = $Background
+@onready  var earth: ColorRect = $Earth
+@onready var moon: Node2D = $Moon
+@onready var rocket: CharacterBody2D = $Rocket
+@onready var body_polygon: Polygon2D = $Rocket/Body
+@onready var flame: Polygon2D = $Rocket/Flame
+@onready var camera: Camera2D = $Camera2D
+@onready var label: Label = $UI/Label
 
-## The maximum number of asteroids to spawn
-@export var asteroid_count: int
-## The points to give for destroying an asteroid
-@export var asteroid_points: int
-## How fast the asteroids should move across the screen, in pixels per second
-@export var asteroid_speed: float
-## How quickly the asteroids should turn, in degrees per second
-@export var asteroid_spin: float
-## How fast the lasers move across the screen, in pixels per second
-@export var laser_speed: float
-## How much the velocity reduces each second when not thrusting
-@export var ship_friction: float
-## The amount of forward velocity the ship has when 'W' is held
-@export var ship_thrust: float
-## How quickly the ship turns when 'A' or 'D' are held, in degrees per second
-@export var ship_turning: float
+@onready var fuel: float = MAX_FUEL
+@onready var landed: bool = false
+@onready var crashed: bool = false
+@onready var angular_velocity: float = 0.0
 
-## A reference to the timer which controls whether asteroids should spawn
-@onready var asteroid_timer: Timer = $AsteroidTimer
-## The previous high score, defaulting to 0
-@onready var high_score: int = SaveSystem.get_global("high_score", 0)
-## A reference to the timer which controls whether the ship can fire
-@onready var reload_timer: Timer = $ReloadTimer
-## A reference to the label which displays the score
-@onready var score_label: Label = %ScoreLabel
-## A reference to the Ship node
-@onready var ship: CharacterBody2D = $Ship
-## A reference to the SpawnPoint node used for spawning asteroids
-@onready var spawn_point: PathFollow2D = %SpawnPoint
-## The 'ship_turning' property converted into radians
-@onready var turn_rad: float = ship_turning * PI / 180
+const EARTH_RADIUS: float = 128
+const ATMOSPHERE_HEIGHT: float = 3000
+const MOON_POSITION_FROM_EARTH := 5000
+const LANDING_RADIUS := 90.0
 
-## An array of spawned asteroids that need to be moved each frame
-var asteroids: Array[RigidBody2D] = []
-## Whether the ship can fire, set by ReloadTimer via _on_reload
-var can_fire: bool = true
-## Whether the game can spawn another asteroid, set by AsteroidTimer via _on_asteroid
-var can_spawn_asteroid: bool = true
-## An array of spawned lasers that need to be moved each frame
-var lasers: Array[Area2D] = []
-## The player's accumulated score
-var score: int = 0
+# Science
+const EARTH_GRAVITY := 9.81
+const MOON_GRAVITY := 1.62
+const THRUST := 40.0
+const TORQUE := 0.2
+const MAX_SPEED = 100.0
+const MOON_Y = -9000 
+const DRAG := 0.4
+const SPACE_DRAG := 0.006
+const MAX_FUEL := 1000.0
+const FUEL_BURN_RATE := 10.0
+const SAFE_LANDING_SPEED := 30.0
+const EARTH_SURFACE_Y := 500.0
+const MAX_ANGULAR_SPEED := 2.5
 
+func reset() -> void:
+	rocket.position = Vector2(0, EARTH_SURFACE_Y)
+	rocket.velocity = Vector2.ZERO
+	rocket.rotation = 0
+	fuel = MAX_FUEL
+	landed = false
+	crashed = false
+	angular_velocity = 0.0
+	flame.visible = false
 
-# Runs every physics tick, `delta` is the time since last tick
+	moon.position = Vector2(400, MOON_Y)
+	
 func _physics_process(delta: float) -> void:
-	# Note: Normally it would be better to configure actions in the project settings, but since this
-	# is a demo project and I don't want to pollute the action map, I'm using direct checks here
+	if Input.is_action_just_pressed("restart"):
+		reset()
+		return
 
-	# Turn if either 'A' or 'D' is pressed, but not both
-	var a_pressed := Input.is_physical_key_pressed(KEY_A)
-	var d_pressed := Input.is_physical_key_pressed(KEY_D)
+	var altitude: float = max(EARTH_SURFACE_Y - rocket.position.y, 0.0)
+	var atmosphere_factor:float = clamp(1.0 - (altitude / ATMOSPHERE_HEIGHT), 0.0, 1.0)
+	var current_drag: float = lerp(SPACE_DRAG, DRAG, atmosphere_factor)
+	var angular_drag: float = lerp(2.0, 0.13, atmosphere_factor)
 
-	if a_pressed and not d_pressed:
-		ship.rotate(-turn_rad * delta)
-	elif d_pressed and not a_pressed:
-		ship.rotate(turn_rad * delta)
+	if not landed and not crashed:
+		handle_input(delta)
+		apply_gravity(delta)
+		apply_drag(delta, current_drag)
+		apply_rotation(delta, angular_drag)
 
-	# Thrust if 'W' is pressed, otherwise apply ship_friction
-	if Input.is_physical_key_pressed(KEY_W):
-		ship.velocity = Vector2.from_angle(ship.rotation - ROTATION_OFFSET) * ship_thrust
-		AudioSystem.play_continuous("Thruster")
-	elif ship.velocity != Vector2.ZERO:
-		AudioSystem.stop_continuous("Thruster")
+		rocket.move_and_slide()
 
-		var friction_vec := ship.velocity.normalized() * ship_friction
+		check_earth_collision()
+		check_moon_landing()
+	else:
+		flame.visible = false
 
-		if friction_vec.abs() > ship.velocity.abs():
-			ship.velocity = Vector2.ZERO
+	update_background()
+	update_moon_visual()
+	update_camera()
+	update_ui(altitude, current_drag)
+
+func handle_input(delta: float) -> void:
+	var thrusting := Input.is_action_pressed("thrust") and fuel > 0.0
+	var turning_left := Input.is_action_pressed("move_left") and fuel > 0.0
+	var turning_right := Input.is_action_pressed("move_right") and fuel > 0.0
+
+	if thrusting:
+		var thrust_dir := Vector2.UP.rotated(rocket.rotation)
+		rocket.velocity += thrust_dir * THRUST * delta
+		fuel = max(0.0, fuel - FUEL_BURN_RATE * delta)
+		AudioSystem.play_with_variance("Thruster")
+
+	if turning_left:
+		angular_velocity -= TORQUE * delta
+		
+	if turning_right:
+		angular_velocity += TORQUE * delta
+
+	flame.visible = thrusting
+
+func apply_gravity(delta: float) -> void:
+	var moon_proximity: float = clamp((-rocket.position.y - 9000.0) / 3000.0, 0.0, 1.0)
+	var effective_gravity: float = lerp(EARTH_GRAVITY, MOON_GRAVITY, moon_proximity)
+	rocket.velocity.y += effective_gravity * delta
+
+func apply_drag(delta: float, drag_strength: float) -> void:
+	rocket.velocity -= rocket.velocity * drag_strength * delta
+
+func apply_rotation(delta: float, angular_drag: float) -> void:
+	angular_velocity -= angular_velocity * angular_drag * delta
+	angular_velocity = clamp(angular_velocity, -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED)
+	rocket.rotation += angular_velocity * delta
+
+
+func check_earth_collision() -> void:
+	var rocket_bottom: float = rocket.position.y
+
+	if (rocket.position.y - 180) > EARTH_SURFACE_Y:
+
+		if rocket.velocity.length() > SAFE_LANDING_SPEED * 0.7:
+			crash("That was awful, can you even drive a bicycle?\nPress R to restart.")
 		else:
-			ship.velocity -= friction_vec * delta
+			pass
 
-	# Actually move the ship and process collisions
-	ship.move_and_slide()
+func check_moon_landing() -> void:
+	var moon_radius: float = 20.0 * moon.scale.y
+	var moon_top: float = moon.position.y - moon_radius
+	var moon_left: float = moon.position.x - moon_radius
+	var moon_right: float = moon.position.x + moon_radius
 
-	# Fire a laser if 'Space' is pressed
-	if Input.is_physical_key_pressed(KEY_SPACE) and can_fire:
-		can_fire = false
-		var laser: Area2D = LASER_SCENE.instantiate()
+	var rocket_bottom: float = rocket.position.y + 60.0
+	var rocket_left: float = rocket.position.x - 3.0
+	var rocket_right: float = rocket.position.x + 3.0
 
-		# Copy the ship's orientation, then offset by 64px in that direction
-		laser.rotation = ship.rotation - ROTATION_OFFSET
-		laser.position = ship.position + Vector2.from_angle(laser.rotation) * LASER_OFFSET
+	var speed: float = rocket.velocity.length()
+	var angle_deg: float = abs(wrapf(rad_to_deg(rocket.rotation), -180.0, 180.0))
 
-		# Set up a signal connection for the 'body_entered' event to destroy the asteroid
-		laser.body_entered.connect(_on_laser_collision.bind(laser))
+	var overlapping_horizontally: bool = rocket_right >= moon_left and rocket_left <= moon_right
+	var near_moon_top: bool = abs(rocket_bottom - moon_top) <= 1.0
 
-		# Since the script is on the root node, we can add the child directly. If this script was on
-		# the ship (as it usually would be), then we would want to add it to the ship's parent.
-		add_child(laser)
-		lasers.append(laser)
+	if near_moon_top and overlapping_horizontally:
+		if  speed <= SAFE_LANDING_SPEED and angle_deg <= 10.0:
+			rocket.position.y = moon_top - 10 
+			rocket.velocity = Vector2.ZERO
+			angular_velocity = 0.0
+			rocket.rotation = 0.0
+			landed = true
+			label.text = "Good job!\nPress R to restart."
+		else:
+			crash("Thank God you were not the Apollo pilot.\nPress R to restart.")
 
-		# Play a sound effect with some pitch variance, then start the reload timer
-		AudioSystem.play_with_variance("Laser")
-		reload_timer.start()
+func crash(message: String) -> void:
+	crashed = true
+	rocket.velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	flame.visible = false
+	label.text = message
 
-	# Spawn asteroids if there are less than the expected amount
-	if len(asteroids) < asteroid_count and can_spawn_asteroid:
-		can_spawn_asteroid = false
-		var asteroid: RigidBody2D = ASTEROID_SCENE.instantiate()
+func update_camera() -> void:
+	camera.position = rocket.position
 
-		# Put the spawn point at a random location on its path, and copy that global position to
-		# the asteroid
-		spawn_point.progress_ratio = randf_range(0.0, 1.0)
-		asteroid.position = spawn_point.global_position
+func update_background() -> void:
+	var altitude: float = max(EARTH_SURFACE_Y - rocket.position.y, 0.0)
+	var t: float= clamp(altitude / ATMOSPHERE_HEIGHT, 0.0, 1.0)
 
-		# Apply a constant force to the asteroid towards the centre of the screen
-		asteroid.add_constant_force(-asteroid.position.normalized() * asteroid_speed)
+	background.color = Color(
+		lerp(0.45, 0.02, t),
+		lerp(0.75, 0.02, t),
+		lerp(1.00, 0.08, t),
+		1.0
+	)
 
-		# Also apply a constant torque to give the asteroid a slight spinning effect
-		asteroid.add_constant_torque(asteroid_spin)
+	earth.modulate.a = 1.0 - t
 
-		# Set up a signal connection for the 'body_entered' event to destroy the asteroid
-		asteroid.body_entered.connect(_on_asteroid_collision.bind(asteroid))
+func update_moon_visual() -> void:
+	var dist: float = abs(rocket.position.y - moon.position.y)
+	var zoom: float = clamp(1.0 + (5000.0 - dist) / 1200.0, 0.25, 4.5)
+	moon.scale = Vector2.ONE * zoom
+	moon.position.x = 0.0
+	moon.position.y = MOON_Y
 
-		# Add the asteroid to our scene and tracking list, then start the spawn delay timer
-		add_child(asteroid)
-		asteroids.append(asteroid)
-		asteroid_timer.start()
+func update_ui(altitude: float, drag_strength: float) -> void:
+	var speed: float = rocket.velocity.length()
+	var angle_deg: float = wrapf(rad_to_deg(rocket.rotation), -180.0, 180.0)
+	var message: String = ""
+	var fuel_bar_len: int = 20
+	var fuel_ratio: float = fuel / MAX_FUEL
+	var filled: int = int(round(fuel_bar_len * fuel_ratio))
+	var empty: int = fuel_bar_len - filled
+	var fuel_bar: String = "[" + "=".repeat(filled) + " ".repeat(empty) + "]"
 
+	var state: String = "Flying"
+	if crashed:
+		state = "Crashed"
+		message = "Thank God you were not the Apollo pilot.\nPress R to restart."
+	elif landed:
+		message = "Good job!\nPress R to restart."
 
-	# Move each laser forward (this could be on a laser script instead, attached to the laser, but
-	# I am trying to limit the number of scripts in the demo project)
-	for laser in lasers:
-		laser.position += Vector2.from_angle(laser.rotation) * laser_speed * delta
-
-
-# Runs every frame, `delta` is the time since last tick
-func _process(_delta: float) -> void:
-	# This code is purely visual, so we should perform it every rendered frame
-	score_label.text = "Score: %d\nHigh Score: %d" % [score, high_score]
-
-
-## Ends the game, saving the current score if it's higher than the previous high score
-func _end_game() -> void:
-	# Stop running the physics and rendering loops
-	process_mode = Node.PROCESS_MODE_DISABLED
-
-	# Save the current score as the new high score if it's larger
-	if score > high_score:
-		SaveSystem.save_global("high_score", score)
-		high_score = score
-
-
-## This handler is called by the ReloadTimer's timeout signal, which triggers whenever the timer
-## completes
-func _on_reload() -> void:
-	can_fire = true
-
-
-## This handler is called by the AsteroidTimer's timeout signal, which triggers whenever the timer
-## completes
-func _on_asteroid() -> void:
-	can_spawn_asteroid = true
-
-
-## This handler is dynamically registered to the 'body_entered' signal on each spawned asteroid, and
-## removes the asteroid from the tracking list then removes it from the scene
-func _on_asteroid_collision(body: Node, asteroid: RigidBody2D) -> void:
-	AudioSystem.play_with_variance("Explosion", 0.5)
-	asteroids.erase(asteroid)
-	asteroid.queue_free()
-
-	# The only CharacterBody2D is our ship, so we know if this is the collided body then the game
-	# should end
-	if body is CharacterBody2D:
-		# End the game, defer till end of frame to avoid breaking things
-		_end_game.call_deferred()
-
-
-## This handler is dynamically registered to the 'body_entered' signal on each spawned laser, and
-## detects collisions with asteroids to generate points
-func _on_laser_collision(body: Node2D, laser: Area2D) -> void:
-	lasers.erase(laser)
-	laser.queue_free()
-
-	# The only RigidBody2Ds are our asteroids, so we know if this is the collided body then the body
-	# should be removed and the score increased
-	if body is RigidBody2D:
-		score += asteroid_points
-
-		AudioSystem.play_with_variance("Explosion", 0.5)
-		var asteroid: RigidBody2D = body
-		asteroids.erase(asteroid)
-		asteroid.queue_free()
+	label.text = (
+		"State: " + state +
+		"\nAltitude: " + str(int(altitude)) +
+		"\nSpeed: " + str(int(speed)) +
+		"\nAngle: " + str(int(angle_deg)) +
+		"\nAir Drag: " + str(snapped(drag_strength, 0.01)) +
+		"\nFuel: " + str(int(fuel)) + " / " + str(int(MAX_FUEL)) +
+		"\n" + fuel_bar +
+		"\n\nControls:" +
+		"\nSpace = thrust" +
+		"\nA/Left = rotate left" +
+		"\nD/Right = rotate right" +
+		"\nR = restart" +
+		"\n" + message
+	)
