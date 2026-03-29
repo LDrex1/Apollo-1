@@ -28,7 +28,7 @@ func _ready() -> void:
 		mute_button.text = UNMUTE_STRING if muted else MUTE_STRING
 
 	# Pre-load the game scene in the background when the game is launched
-	var load_result := await SceneSystem.bg_load(game_scene)
+	var load_result = await SceneSystem.bg_load(game_scene)
 
 	if load_result.error == OK:
 		_game_scene = load_result.res
