@@ -24,7 +24,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = SubResource("Theme_rhts7")
 script = ExtResource("1_06t4h")
-game_scene = "uid://c5xdyiqgdafuj"
+game_scene = "res://demo/demo.tscn"
 
 [node name="MainContent" type="MarginContainer" parent="." unique_id=2097499811]
 layout_mode = 1
@@ -40,7 +40,7 @@ size_flags_vertical = 8
 
 [node name="Credits" type="Label" parent="MainContent/BottomInfo" unique_id=990098897]
 layout_mode = 2
-text = "Created by Me, Myself and I
+text = "Created by abidami
 For the JamJar Jam 2026"
 
 [node name="Spacer" type="Control" parent="MainContent/BottomInfo" unique_id=1304817069]
